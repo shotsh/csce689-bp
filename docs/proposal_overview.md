@@ -2,7 +2,7 @@
 
 ## 1. Title
 
-* Implementation of CBP 2025 TAGE-SC and MPP in ChampSim, and scaling evaluation under fixed hardware budgets
+* CSCE 689 Special Topics in Branch Prediction Project Proposal
 
 ## 2. Abstract
 
