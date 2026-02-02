@@ -37,6 +37,12 @@
   * For MPP, we keep the feature set fixed and scale the table sizes (and, if needed, weight storage) to match each budget point.
 
 ## 5. Implementation Plan
+### 5.0 Implementation specification before coding
+* Before coding, we will read the key papers and study ChampSim’s branch predictor API, then write an implementation specification document (or implementation memo) to reduce integration risk.
+* The spec document will explicitly define
+  * predictor state and update rules (including what metadata is carried from predict_branch() to last_branch_result())
+  * the storage accounting methodology (including metadata) and the budget allocation rule at each budget point
+  * a minimal sanity-check plan (small-trace regression runs, etc.)
 
 ### 5.1 Stepwise implementation plan for TAGE-SC
 
@@ -107,6 +113,8 @@
 * Execution
   * Mutually review key logic and critical paths.
   * Set weekly milestones and check progress on a weekly basis.
+
+* Mutually review the implementation specification document and freeze it before major coding, to avoid interface and accounting inconsistencies.
 
 ## 8. Preliminary Work
 
