@@ -10,33 +10,34 @@
 * We evaluate prediction accuracy and performance across seven fixed storage budgets (24 KB to 1536 KB, doubling each step) using more than 100 benchmark traces.
 * To enable apples-to-apples comparison, we use a unified storage accounting methodology that includes metadata, and we define a high-level budget scaling policy for both predictors (TAGE vs SC allocation for TAGE-SC, and fixed feature set with scaled tables for MPP).
 * For reproducibility, we run a fixed warmup and a fixed measurement window per trace using ChampSim’s `--warmup-instructions` and `--simulation-instructions`, and report statistics from the simulation phase only.
-* As a reference point, we also report results for ChampSim’s built-in `hashed_perceptron`. As stretch goals, we consider adding a loop predictor to TAGE-SC and exploring an MPP combiner after both predictors become stable.
+* As a reference point, we also report results for ChampSim’s built-in `hashed_perceptron`. If time permits, we will perform focused ablations on the CBP 2025 designs to explain which components drive accuracy.
 
 ## 3. Introduction
 
 * High-accuracy branch prediction is critical for modern processors because each misprediction wastes frontend bandwidth and execution resources, reducing IPC.
-* In this course project, we study two CBP 2025 workshop predictors specified by the ChampSim project option: TAGE-SC and the Multiperspective Perceptron Predictor (MPP).
+* In this course project, we study two CBP 2025 workshop predictors, TAGE-SC and the Multiperspective Perceptron Predictor (MPP), by porting/adapting the CBP 2025 championship reference predictors to ChampSim.
 * These predictors represent two complementary design approaches, namely tagged geometric-history tables and perceptron-based learning over history-derived features.
 * We implement both predictors in ChampSim and evaluate accuracy and performance across seven fixed storage budgets (24 KB to 1536 KB) using more than 100 benchmark traces under a unified storage accounting methodology (including metadata).
 
 ## 4. Targets and Scope
 
 * Primary targets
-  * CBP 2025 TAGE-SC (loop predictor is optional and treated as a stretch goal)
-  * CBP 2025 MPP (a combiner with TAGE is optional and treated as a stretch goal)
+  * CBP 2025 TAGE-SC (as in the championship reference code)
+  * CBP 2025 MPP integrated with TAGE-SC-L (as in the championship reference code)
 
-* Since the CBP 2025 descriptions focus on differences, we refer to prior work* to concretize the implementation specification.
-* For MPP as well, we use prior work* as the base and concretize the 2025 implementation specification.
+* We will start from the CBP 2025 championship reference code and adapt it to run in ChampSim with minimal algorithmic changes.
+* Prior work will be used to understand design intent and to document configuration and storage accounting.
 
-* Stretch goals
-  * Optionally add a loop predictor to TAGE and quantify the incremental benefit.
-  * After both predictors become stable, optionally implement a combiner that combines TAGE with MPP.
+* If time permits (ablations)
+  * Evaluate simplified configurations by disabling selected components or features one at a time to understand their contribution to accuracy and MPKI.
+  * (Optional) Run MPP without its intended integration only as an ablation to quantify the impact of the coupling.
 
 * Budget scaling policy (high-level)
   * For TAGE-SC, we keep the number of components and the history-length scheme consistent with the CBP reference design and scale table entry counts under a fixed allocation ratio between TAGE and SC.
   * For MPP, we keep the feature set fixed and scale the table sizes (and, if needed, weight storage) to match each budget point.
 
 ## 5. Implementation Plan
+
 We will apply the following steps to both TAGE-SC and MPP.
 
 ### Step 1: Extract the CBP-side code as a standalone predictor library
@@ -44,7 +45,7 @@ We will apply the following steps to both TAGE-SC and MPP.
 * (a) Identify the CBP headers and utilities that the predictor core depends on.
 * (b) Make the predictor buildable and compilable in isolation, independent of ChampSim.
 
-### Step 2: Build a ChampSim adapter 
+### Step 2: Build a ChampSim adapter
 
 * Bring over the CBP 2025 predictor classes/functions largely as-is.
 * Repackage the PC / branch type / target information coming from ChampSim into the format expected by the CBP predictor.
@@ -54,23 +55,19 @@ We will apply the following steps to both TAGE-SC and MPP.
 
 ### Step 3: Run with non-speculative updates to match ChampSim
 
-* Do not advance history in `predict`.
-* Update history only when the outcome is resolved.
-* Do not implement squash or rollback.
+* We follow ChampSim’s update model. If the reference code assumes history progression at prediction time, we will keep the required history bookkeeping internal to the predictor without modifying ChampSim.
+* Do not implement squash or rollback in ChampSim.
 
 ### Concrete tasks
 
 * Locate the predictor entry points in the CBP 2025 code and identify all dependencies.
 * Create a minimal project (or a static library) that can compile the predictor code by itself.
 * Based on an existing predictor implementation such as `gshare`, build a wrapper/adapter layer in ChampSim that calls into the CBP predictor.
-
   * Make it callable from ChampSim’s `predict_branch()` / `last_branch_result()`.
   * Save and carry the metadata needed for updates (e.g., referenced index sets) from predict to update.
 * Call the CBP predictor and run at least one trace end-to-end.
 * Get to a point where Branch MPKI does not “break” (i.e., does not degrade dramatically).
-
   * Confirm that it does not become significantly worse than `gshare` / `hashed_perceptron`.
-
 
 ## 6. Experimental Methodology
 
@@ -83,7 +80,7 @@ We will apply the following steps to both TAGE-SC and MPP.
     * SPEC CPU2017
       * 20 benchmark types
       * 95 traces
-  * Stretch goals
+  * If time permits (stretch workloads)
     * GAP suite (bc, bfs, cc, pr, sssp, tc × each graph)
       * 30 combinations
       * 123 traces
@@ -100,7 +97,7 @@ We will apply the following steps to both TAGE-SC and MPP.
   * IPC
   * Branch MPKI
 
-* Reference baseline 
+* Reference baseline
   * As a reference point, we also report results for ChampSim’s built-in `hashed_perceptron`.
 
 * Plots
@@ -117,8 +114,7 @@ We will apply the following steps to both TAGE-SC and MPP.
 * Execution
   * Mutually review key logic and critical paths.
   * Set weekly milestones and check progress on a weekly basis.
-
-* Mutually review the implementation specification document and freeze it before major coding, to avoid interface and accounting inconsistencies.
+  * Mutually review and freeze the adapter interface and storage accounting rules before scaling to the full budget sweep.
 
 ## 8. Preliminary Work
 
@@ -129,21 +125,21 @@ We will apply the following steps to both TAGE-SC and MPP.
   * Confirm that `hashed_perceptron` produces MPKI and IPC.
   * Ran SPEC 2006 and SPEC 2017 benchmarks.
 
-## 9. References
+## 9. References (main 8 plus datasets and tools)
 
 ### 9.1 TAGE family
 
 1. André Seznec and P. Michaud, “A case for (partially) TAgged GEometric history length branch prediction,” JILP, 2006.
-2. A. Seznec, “A New Case for the TAGE Branch Predictor,” MICRO, 2011.
+2. A. Seznec, “A New Case for the TAGE Branch Predictor,” MICRO, 2011. (refer to local PDF)
 3. A. Seznec, “TAGE-SC-L Branch Predictors,” CBP Workshop, 2014.
-4. A. Seznec, “TAGE-SC-L Branch Predictors Again,” CBP Workshop, 2016.
-5. A. Seznec, “TAGE-SC for CBP2025,” CBP Workshop, 2025.
+4. A. Seznec, “TAGE-SC-L Branch Predictors Again,” CBP Workshop, 2016. ([SIGARCH][1])
+5. A. Seznec, “TAGE-SC for CBP2025,” CBP Workshop, 2025. ([CBP Workshop paper][2])
 
 ### 9.2 MPP family
 
 6. Daniel A. Jiménez, “Multiperspective Perceptron Predictor,” CBP Workshop, 2016.
-7. D. A. Jiménez, “Multiperspective Perceptron Predictor for CBP2025,” CBP Workshop, 2025.
+7. D. A. Jiménez, “Multiperspective Perceptron Predictor for CBP2025,” CBP Workshop, 2025. ([dblp][3])
 
 ### 9.3 Simulator
 
-8. N. Gober et al., “The Championship Simulator: Architectural Simulation for Education and Competition,” arXiv:2210.14324, 2022. 
+8. N. Gober et al., “The Championship Simulator: Architectural Simulation for Education and Competition,” arXiv:2210.14324, 2022. ([dblp][4])
