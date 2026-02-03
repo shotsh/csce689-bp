@@ -28,10 +28,6 @@
 * We will start from the CBP 2025 championship reference code and adapt it to run in ChampSim with minimal algorithmic changes.
 * Prior work will be used to understand design intent and to document configuration and storage accounting.
 
-* If time permits (ablations)
-  * Evaluate simplified configurations by disabling selected components or features one at a time to understand their contribution to accuracy and MPKI.
-  * (Optional) Run MPP without its intended integration only as an ablation to quantify the impact of the coupling.
-
 * Budget scaling policy (high-level)
   * For TAGE-SC, we keep the number of components and the history-length scheme consistent with the CBP reference design and scale table entry counts under a fixed allocation ratio between TAGE and SC.
   * For MPP, we keep the feature set fixed and scale the table sizes (and, if needed, weight storage) to match each budget point.
@@ -125,21 +121,21 @@ We will apply the following steps to both TAGE-SC and MPP.
   * Confirm that `hashed_perceptron` produces MPKI and IPC.
   * Ran SPEC 2006 and SPEC 2017 benchmarks.
 
-## 9. References (main 8 plus datasets and tools)
+## 9. References
 
 ### 9.1 TAGE family
 
 1. André Seznec and P. Michaud, “A case for (partially) TAgged GEometric history length branch prediction,” JILP, 2006.
-2. A. Seznec, “A New Case for the TAGE Branch Predictor,” MICRO, 2011. (refer to local PDF)
+2. A. Seznec, “A New Case for the TAGE Branch Predictor,” MICRO, 2011.
 3. A. Seznec, “TAGE-SC-L Branch Predictors,” CBP Workshop, 2014.
-4. A. Seznec, “TAGE-SC-L Branch Predictors Again,” CBP Workshop, 2016. ([SIGARCH][1])
-5. A. Seznec, “TAGE-SC for CBP2025,” CBP Workshop, 2025. ([CBP Workshop paper][2])
+4. A. Seznec, “TAGE-SC-L Branch Predictors Again,” CBP Workshop, 2016.
+5. A. Seznec, “TAGE-SC for CBP2025,” CBP Workshop, 2025.
 
 ### 9.2 MPP family
 
 6. Daniel A. Jiménez, “Multiperspective Perceptron Predictor,” CBP Workshop, 2016.
-7. D. A. Jiménez, “Multiperspective Perceptron Predictor for CBP2025,” CBP Workshop, 2025. ([dblp][3])
+7. D. A. Jiménez, “Multiperspective Perceptron Predictor for CBP2025,” CBP Workshop, 2025.
 
 ### 9.3 Simulator
 
-8. N. Gober et al., “The Championship Simulator: Architectural Simulation for Education and Competition,” arXiv:2210.14324, 2022. ([dblp][4])
+8. N. Gober et al., “The Championship Simulator: Architectural Simulation for Education and Competition,” arXiv:2210.14324, 2022. 
