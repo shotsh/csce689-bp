@@ -37,35 +37,39 @@
   * For MPP, we keep the feature set fixed and scale the table sizes (and, if needed, weight storage) to match each budget point.
 
 ## 5. Implementation Plan
-### 5.0 Implementation specification before coding
-* Before coding, we will read the key papers and study ChampSim’s branch predictor API, then write an implementation specification document (or implementation memo) to reduce integration risk.
-* The spec document will explicitly define
-  * predictor state and update rules (including what metadata is carried from predict_branch() to last_branch_result())
-  * the storage accounting methodology (including metadata) and the budget allocation rule at each budget point
-  * a minimal sanity-check plan (small-trace regression runs, etc.)
+We will apply the following steps to both TAGE-SC and MPP.
 
-### 5.1 Stepwise implementation plan for TAGE-SC
+### Step 1: Extract the CBP-side code as a standalone predictor library
 
-* Step T0: Implement the TAGE core by referring to TAGE 2006 (tagged tables, provider and altpred, usefulness bits, allocation on mispredict, etc.).
-* Step T1: Add the statistical corrector (SC) in a first working form by referring to TAGE 2011 (sum of multiple SC tables, inversion based on a threshold, use TAGE confidence as an input).
-* Step T2: Move the SC structure and parameters closer to those described in CBP 2014 and 2016.
-  * History length selection, number of tables, weight width, threshold update rule
-  * Fix the budget allocation rule so the sweep is straightforward.
-* Step T3: Add the CBP 2025 diffs (layer the diff mechanisms on top of the 2016-based design).
-* Stretch: Add a loop predictor.
+* (a) Identify the CBP headers and utilities that the predictor core depends on.
+* (b) Make the predictor buildable and compilable in isolation, independent of ChampSim.
 
-### 5.2 Stepwise implementation plan for MPP
+### Step 2: Build a ChampSim adapter 
 
-* Step M0: Sanity-check baseline measurements (`hashed_perceptron`, and also `gshare` if needed).
-* Step M1: Build an MPP-oriented framework based on a hashed perceptron (feature generation, sum computation, and a mechanism to retain the set of indices needed for updates).
-* Step M2: First implement the prior-work MPP 2016 specification, then verify that training works and that the accuracy trend is reasonable.
-* Step M3: Add the CBP 2025 diffs and any required filtering.
-* Stretch: After TAGE-SC is stable, implement the CBP 2025 combiner.
+* Bring over the CBP 2025 predictor classes/functions largely as-is.
+* Repackage the PC / branch type / target information coming from ChampSim into the format expected by the CBP predictor.
+* Save the required metadata (e.g., sets of indices) and pass it to the update path.
+* Invoke the predictor from ChampSim’s `predict_branch()` and `last_branch_result()`.
+* Call `update()` according to ChampSim’s update timing (i.e., when the actual outcome arrives in `last_branch_result()`, update using the saved metadata).
 
-### 5.3 Integration into ChampSim
-* Maintain all predictor state required across calls (tables, histories, and any auxiliary structures).
-* Implement the prediction and training flow through ChampSim’s hooks: make predictions in predict_branch() and train/update in last_branch_result(), consistent with ChampSim’s timing model.
-* Correctly pass the metadata needed for training (e.g., table indices, provider/alt selection, confidence, and feature indices) from predict_branch() to last_branch_result().
+### Step 3: Run with non-speculative updates to match ChampSim
+
+* Do not advance history in `predict`.
+* Update history only when the outcome is resolved.
+* Do not implement squash or rollback.
+
+### Concrete tasks
+
+* Locate the predictor entry points in the CBP 2025 code and identify all dependencies.
+* Create a minimal project (or a static library) that can compile the predictor code by itself.
+* Based on an existing predictor implementation such as `gshare`, build a wrapper/adapter layer in ChampSim that calls into the CBP predictor.
+
+  * Make it callable from ChampSim’s `predict_branch()` / `last_branch_result()`.
+  * Save and carry the metadata needed for updates (e.g., referenced index sets) from predict to update.
+* Call the CBP predictor and run at least one trace end-to-end.
+* Get to a point where Branch MPKI does not “break” (i.e., does not degrade dramatically).
+
+  * Confirm that it does not become significantly worse than `gshare` / `hashed_perceptron`.
 
 
 ## 6. Experimental Methodology
